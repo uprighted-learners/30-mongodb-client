@@ -51,7 +51,7 @@ async function runQuery() {
     }
 }
 
-runQuery();
+// runQuery();
 
 async function seedDatabase() {
     try {
@@ -81,10 +81,93 @@ app.get('/api/seed', async (req, res) => {
     }
 });
 
-
 // GET - /api/health - tells us if server is alive
 app.get('/api/health', (req, res) => {
     res.send('OK');
+});
+
+// GET - /api/inventory - get all inventory items
+app.get('/api/inventory', async (req, res) => {
+    try {
+        let db = await connectDb();
+        let collection = await db.collection("inventory");
+        let results = [];
+        let inventoryList = await collection.find({});
+        await inventoryList.forEach(inventoryObj => {
+            results.push(inventoryObj);
+        })
+        res.json(results);
+    } catch (error) {
+        console.log(error);
+    }
+});
+
+// GET - /api/inventory/:id - get an inventory item by ID
+app.get('/api/inventory/:id', async (req, res) => {
+    const db = await connectDb();
+    const inventory = db.collection("inventory");
+    const id = req.params.id;
+    try {
+        const item = await inventory.findOne({ _id: new ObjectId(id) });
+        if (item) {
+            res.status(200).json(item);
+        } else {
+            res.status(404).json({ message: "Item not found" });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST - /api/inventory - create a new inventory item
+app.post('/api/inventory', async (req, res) => {
+    const db = await connectDb();
+    const inventory = db.collection("inventory");
+    const newItem = req.body;
+    try {
+        const result = await inventory.insertOne(newItem);
+        res.status(201).json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PUT - /api/inventory/:id - update an inventory item by ID
+app.put('/api/inventory/:id', async (req, res) => {
+    const db = await connectDb();
+    const inventory = db.collection("inventory");
+    const id = req.params.id;
+    const item = req.body;
+    try {
+        const result = await inventory.updateOne(
+            { _id: new ObjectId(id) },
+            { $set: item }
+        );
+        if (result.matchedCount === 1) {
+            res.status(200).json({ message: "Item updated" });
+        } else {
+            res.status(404).json({ message: "Item not found" });
+        }
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// DELETE - /api/inventory/:id - delete an inventory item by ID
+app.delete('/api/inventory/:id', async (req, res) => {
+    const db = await connectDb();
+    const inventory = db.collection("inventory");
+    const id = req.params.id;
+    try {
+        const result = await inventory.deleteOne({ _id: new ObjectId(id) });
+        if (result.deletedCount === 1) {
+            res.status(200).json({ message: "Item deleted" });
+        } else {
+            res.status(404).json({ message: "Item not found" });
+        }
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
 });
 
 // DELETE - /api/deleteAll - delete all records in the "inventory" collection
