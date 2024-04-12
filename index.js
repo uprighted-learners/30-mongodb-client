@@ -28,17 +28,30 @@ async function connectDb() {
     }
 }
 
-// run query
+// run query function
 async function runQuery() {
     try {
         let db = await connectDb();
         let collection = await db.collection("inventory");
         console.log("Connected to MongoDB");
+        const results = await collection.find(
+            {
+                status: "A",
+                $or: [
+                    { qty: { $lt: 30 } },
+                    { "size.h": { $gt: 10 } }
+                ]
+            }
+        )
+        // console.log(results);
+        await results.forEach(doc => console.log(doc));
         return collection;
     } catch (error) {
         console.log(error);
     }
 }
+
+runQuery();
 
 async function seedDatabase() {
     try {
